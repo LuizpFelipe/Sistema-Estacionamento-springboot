@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Vaga.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">estacionamento</a> &gt; <a href="index.source.html" class="el_package">br.com.estacionamento.model</a> &gt; <span class="el_source">Vaga.java</span></div><h1>Vaga.java</h1><pre class="source lang-java linenums">package br.com.estacionamento.model;
+
+import jakarta.persistence.*;
+
+@Entity
+public class Vaga {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, unique = true)
+    private Integer numero;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TipoVaga tipo;
+
+    @Column(nullable = false)
+<span class="fc" id="L20">    private boolean ocupada = false;</span>
+
+    // impede que duas requisições simultâneas ocupem a mesma vaga
+    @Version
+    private Long versao;
+
+<span class="fc" id="L26">    protected Vaga() {</span>
+<span class="fc" id="L27">    }</span>
+
+<span class="fc" id="L29">    public Vaga(Integer numero, TipoVaga tipo) {</span>
+<span class="fc" id="L30">        this.numero = numero;</span>
+<span class="fc" id="L31">        this.tipo = tipo;</span>
+<span class="fc" id="L32">    }</span>
+
+    public void ocupar() {
+<span class="pc bpc" id="L35" title="1 of 2 branches missed.">        if (ocupada) {</span>
+<span class="nc" id="L36">            throw new IllegalStateException(&quot;Vaga &quot; + numero + &quot; já está ocupada&quot;);</span>
+        }
+<span class="fc" id="L38">        this.ocupada = true;</span>
+<span class="fc" id="L39">    }</span>
+
+    public void liberar() {
+<span class="fc" id="L42">        this.ocupada = false;</span>
+<span class="fc" id="L43">    }</span>
+
+    public Long getId() {
+<span class="fc" id="L46">        return id;</span>
+    }
+
+    public Integer getNumero() {
+<span class="fc" id="L50">        return numero;</span>
+    }
+
+    public TipoVaga getTipo() {
+<span class="fc" id="L54">        return tipo;</span>
+    }
+
+    public boolean isOcupada() {
+<span class="fc" id="L58">        return ocupada;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

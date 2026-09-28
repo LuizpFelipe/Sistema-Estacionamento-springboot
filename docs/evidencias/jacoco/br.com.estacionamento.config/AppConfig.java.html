@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AppConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">estacionamento</a> &gt; <a href="index.source.html" class="el_package">br.com.estacionamento.config</a> &gt; <span class="el_source">AppConfig.java</span></div><h1>AppConfig.java</h1><pre class="source lang-java linenums">package br.com.estacionamento.config;
+
+import br.com.estacionamento.model.Ticket;
+import br.com.estacionamento.model.TipoVaga;
+import br.com.estacionamento.model.Vaga;
+import br.com.estacionamento.repository.TicketRepository;
+import br.com.estacionamento.repository.VagaRepository;
+import br.com.estacionamento.service.CalculadoraTarifa;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.time.Clock;
+import java.time.LocalDateTime;
+
+@Configuration
+<span class="fc" id="L18">public class AppConfig {</span>
+
+    @Bean
+    public Clock clock() {
+<span class="fc" id="L22">        return Clock.systemDefaultZone();</span>
+    }
+
+    @Bean
+    public CommandLineRunner carregarDados(VagaRepository vagas,
+                                           TicketRepository tickets,
+                                           CalculadoraTarifa calculadora,
+                                           Clock clock,
+                                           @Value(&quot;${app.dados-exemplo:false}&quot;) boolean dadosExemplo) {
+<span class="fc" id="L31">        return args -&gt; {</span>
+<span class="pc bpc" id="L32" title="1 of 2 branches missed.">            if (vagas.count() &gt; 0) {</span>
+<span class="nc" id="L33">                return;</span>
+            }
+<span class="fc" id="L35">            Vaga[] v = new Vaga[16];</span>
+<span class="fc bfc" id="L36" title="All 2 branches covered.">            for (int i = 1; i &lt;= 10; i++) v[i] = vagas.save(new Vaga(i, TipoVaga.CARRO));</span>
+<span class="fc bfc" id="L37" title="All 2 branches covered.">            for (int i = 11; i &lt;= 13; i++) v[i] = vagas.save(new Vaga(i, TipoVaga.MOTO));</span>
+<span class="fc bfc" id="L38" title="All 2 branches covered.">            for (int i = 14; i &lt;= 15; i++) v[i] = vagas.save(new Vaga(i, TipoVaga.PCD));</span>
+
+<span class="pc bpc" id="L40" title="1 of 2 branches missed.">            if (!dadosExemplo) {</span>
+<span class="fc" id="L41">                return;</span>
+            }
+<span class="nc" id="L43">            LocalDateTime agora = LocalDateTime.now(clock);</span>
+
+<span class="nc" id="L45">            estacionado(vagas, tickets, v[1], &quot;ABC1D23&quot;, agora.minusMinutes(40));</span>
+<span class="nc" id="L46">            estacionado(vagas, tickets, v[2], &quot;BRA2E19&quot;, agora.minusHours(3));</span>
+<span class="nc" id="L47">            estacionado(vagas, tickets, v[11], &quot;MOT0A12&quot;, agora.minusMinutes(10));</span>
+
+<span class="nc" id="L49">            encerrado(tickets, calculadora, v[3], &quot;QWE1234&quot;, agora.minusHours(5), agora.minusHours(4).minusMinutes(50));</span>
+<span class="nc" id="L50">            encerrado(tickets, calculadora, v[3], &quot;RTY5F67&quot;, agora.minusHours(4), agora.minusHours(2));</span>
+<span class="nc" id="L51">            encerrado(tickets, calculadora, v[14], &quot;PCD9G88&quot;, agora.minusHours(6), agora.minusHours(5).minusMinutes(20));</span>
+<span class="nc" id="L52">            encerrado(tickets, calculadora, v[4], &quot;LNG4H56&quot;, agora.minusDays(1).minusHours(10), agora.minusHours(1));</span>
+<span class="nc" id="L53">        };</span>
+    }
+
+    private void estacionado(VagaRepository vagas, TicketRepository tickets, Vaga vaga, String placa, LocalDateTime entrada) {
+<span class="nc" id="L57">        vaga.ocupar();</span>
+<span class="nc" id="L58">        vagas.save(vaga);</span>
+<span class="nc" id="L59">        tickets.save(new Ticket(placa, vaga, entrada));</span>
+<span class="nc" id="L60">    }</span>
+
+    private void encerrado(TicketRepository tickets, CalculadoraTarifa calculadora, Vaga vaga,
+                           String placa, LocalDateTime entrada, LocalDateTime saida) {
+<span class="nc" id="L64">        Ticket t = new Ticket(placa, vaga, entrada);</span>
+<span class="nc" id="L65">        t.fechar(saida, calculadora.calcular(entrada, saida));</span>
+<span class="nc" id="L66">        tickets.save(t);</span>
+<span class="nc" id="L67">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

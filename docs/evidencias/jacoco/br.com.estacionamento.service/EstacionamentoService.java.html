@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EstacionamentoService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">estacionamento</a> &gt; <a href="index.source.html" class="el_package">br.com.estacionamento.service</a> &gt; <span class="el_source">EstacionamentoService.java</span></div><h1>EstacionamentoService.java</h1><pre class="source lang-java linenums">package br.com.estacionamento.service;
+
+import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.regex.Pattern;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import br.com.estacionamento.exception.EstacionamentoLotadoException;
+import br.com.estacionamento.exception.RegraNegocioException;
+import br.com.estacionamento.exception.TicketNaoEncontradoException;
+import br.com.estacionamento.exception.VeiculoJaEstacionadoException;
+import br.com.estacionamento.model.StatusTicket;
+import br.com.estacionamento.model.Ticket;
+import br.com.estacionamento.model.TipoVaga;
+import br.com.estacionamento.model.Vaga;
+import br.com.estacionamento.repository.TicketRepository;
+import br.com.estacionamento.repository.VagaRepository;
+
+@Service
+public class EstacionamentoService {
+
+    // formato antigo (ABC1234) ou Mercosul (ABC1D23)
+<span class="fc" id="L27">    private static final Pattern PLACA = Pattern.compile(&quot;^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$&quot;);</span>
+
+    private final VagaRepository vagaRepository;
+    private final TicketRepository ticketRepository;
+    private final CalculadoraTarifa calculadora;
+    private final Clock clock;
+
+<span class="fc" id="L34">    public EstacionamentoService(VagaRepository vagaRepository,</span>
+                                 TicketRepository ticketRepository,
+                                 CalculadoraTarifa calculadora,
+                                 Clock clock) {
+<span class="fc" id="L38">        this.vagaRepository = vagaRepository;</span>
+<span class="fc" id="L39">        this.ticketRepository = ticketRepository;</span>
+<span class="fc" id="L40">        this.calculadora = calculadora;</span>
+<span class="fc" id="L41">        this.clock = clock;</span>
+<span class="fc" id="L42">    }</span>
+
+    @Transactional
+    public Ticket registrarEntrada(String placa, TipoVaga tipo) {
+<span class="fc" id="L46">        String placaNormalizada = normalizarPlaca(placa);</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">        if (tipo == null) {</span>
+<span class="fc" id="L48">            throw new RegraNegocioException(&quot;Tipo de vaga é obrigatório&quot;);</span>
+        }
+
+<span class="fc bfc" id="L51" title="All 2 branches covered.">        if (ticketRepository.existsByPlacaAndStatus(placaNormalizada, StatusTicket.ABERTO)) {</span>
+<span class="fc" id="L52">            throw new VeiculoJaEstacionadoException(placaNormalizada);</span>
+        }
+
+<span class="fc" id="L55">        Vaga vaga = vagaRepository.findFirstByTipoAndOcupadaFalseOrderByNumeroAsc(tipo)</span>
+<span class="fc" id="L56">                .orElseThrow(() -&gt; new EstacionamentoLotadoException(tipo));</span>
+
+<span class="fc" id="L58">        vaga.ocupar();</span>
+<span class="fc" id="L59">        vagaRepository.saveAndFlush(vaga);</span>
+
+<span class="fc" id="L61">        Ticket ticket = new Ticket(placaNormalizada, vaga, agora());</span>
+<span class="fc" id="L62">        return ticketRepository.saveAndFlush(ticket);</span>
+    }
+
+    @Transactional
+    public Ticket registrarSaida(Long ticketId) {
+<span class="fc" id="L67">        Ticket ticket = buscarTicket(ticketId);</span>
+
+<span class="fc bfc" id="L69" title="All 2 branches covered.">        if (ticket.getStatus() == StatusTicket.FECHADO) {</span>
+<span class="fc" id="L70">            throw new RegraNegocioException(&quot;Ticket &quot; + ticketId + &quot; já foi encerrado&quot;);</span>
+        }
+
+<span class="fc" id="L73">        LocalDateTime saida = agora();</span>
+<span class="fc" id="L74">        BigDecimal valor = calculadora.calcular(ticket.getEntrada(), saida);</span>
+
+<span class="fc" id="L76">        ticket.fechar(saida, valor);</span>
+<span class="fc" id="L77">        ticket.getVaga().liberar();</span>
+<span class="fc" id="L78">        return ticketRepository.save(ticket);</span>
+    }
+
+    @Transactional(readOnly = true)
+    public Ticket buscarTicket(Long ticketId) {
+<span class="fc" id="L83">        return ticketRepository.findById(ticketId)</span>
+<span class="fc" id="L84">                .orElseThrow(() -&gt; new TicketNaoEncontradoException(ticketId));</span>
+    }
+
+    @Transactional(readOnly = true)
+    public long vagasLivres(TipoVaga tipo) {
+<span class="fc" id="L89">        return vagaRepository.countByTipoAndOcupadaFalse(tipo);</span>
+    }
+    
+    private LocalDateTime agora() {
+<span class="fc" id="L93">        return LocalDateTime.now(clock).truncatedTo(ChronoUnit.MICROS);</span>
+    }
+
+    private String normalizarPlaca(String placa) {
+<span class="pc bpc" id="L97" title="1 of 4 branches missed.">        if (placa == null || placa.isBlank()) {</span>
+<span class="fc" id="L98">            throw new RegraNegocioException(&quot;Placa é obrigatória&quot;);</span>
+        }
+<span class="fc" id="L100">        String normalizada = placa.replace(&quot;-&quot;, &quot;&quot;).trim().toUpperCase();</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">        if (!PLACA.matcher(normalizada).matches()) {</span>
+<span class="fc" id="L102">            throw new RegraNegocioException(&quot;Placa inválida: &quot; + placa);</span>
+        }
+<span class="fc" id="L104">        return normalizada;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
