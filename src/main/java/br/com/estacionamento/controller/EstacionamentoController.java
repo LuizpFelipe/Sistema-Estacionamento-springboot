@@ -26,17 +26,17 @@ public class EstacionamentoController {
     }
 
     @PostMapping("/tickets/{id}/saida")
-    public TicketResponse registrarSaida(@PathVariable Long id) {
+    public TicketResponse registrarSaida(@PathVariable("id") Long id) {
         return TicketResponse.de(service.registrarSaida(id));
     }
 
     @GetMapping("/tickets/{id}")
-    public TicketResponse buscar(@PathVariable Long id) {
+    public TicketResponse buscar(@PathVariable("id") Long id) {
         return TicketResponse.de(service.buscarTicket(id));
     }
 
     @GetMapping("/vagas/livres")
-    public VagasLivresResponse vagasLivres(@RequestParam TipoVaga tipo) {
+    public VagasLivresResponse vagasLivres(@RequestParam("tipo") TipoVaga tipo) {
         return new VagasLivresResponse(tipo, service.vagasLivres(tipo));
     }
 }
